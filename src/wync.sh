@@ -14,6 +14,7 @@ Options:
   -o|--once         Just sync once, no watching of files.
   -v|--verbose      Verbose output.
   -d|--dry-run      Just output commands, not actually sync.
+  -i|--include-dot  Include dot files (ignored by default)
 
   Size is specified as the find command would understand.
   If a .wyncignore file is found in any watched directory or subdirectory it will
@@ -31,6 +32,7 @@ once=0
 verbose=0
 dry_run=0
 log_file="stdout"
+include_dot=0
 # exclusion that are always ignored, used for all watched files/dirs
 static_excludes=()
 # dynamically constructed exclusion list, used for all watched files/dirs
@@ -88,6 +90,11 @@ while (( "$#" )); do
       ;;
     -d|--dry-run)
       dry_run=1
+      shift
+      ;;
+    -i|--include-dot)
+      include_dot=1
+      static_excludes+=(".*")
       shift
       ;;
     --) # end argument parsing
@@ -187,13 +194,13 @@ function sync(){
   construct_file_excludes "$local_file"
   if [[ "$verbose" -gt 0 ]]; then
     echo ""
-    echo " ${syncer} $rsync_opts --exclude=\".*\" $rsync_excludes $rsync_file_excludes $args $local_file $remote_file"
+    echo " ${syncer} $rsync_opts $rsync_excludes $rsync_file_excludes $args $local_file $remote_file"
   fi
   if [[ "$dry_run" -eq 0 ]]; then
     if [[ "${log_file^^}" == "STDOUT" ]]; then
-      ${syncer} $rsync_opts --exclude='.*' $rsync_excludes $rsync_file_excludes $args $local_file $remote_file
+      ${syncer} $rsync_opts $rsync_excludes $rsync_file_excludes $args $local_file $remote_file
     else
-      ${syncer} $rsync_opts --exclude='.*' $rsync_excludes $rsync_file_excludes $args $local_file $remote_file &>"$log_file"
+      ${syncer} $rsync_opts $rsync_excludes $rsync_file_excludes $args $local_file $remote_file &>"$log_file"
     fi
    fi
   echo " done"
@@ -217,7 +224,14 @@ if [[ "$once" -eq 1 ]]; then
   exit 0
 fi
 
-${watcher} --exclude "\(\.\*.git\)" -mr --format '%w %f %:e' \
+# hack to avoid long if else call for watcher parameters
+watcher_exclude="___________"
+if [[ "$include_dot" -eq 0 ]]; then
+  # avoid watching git dir that generates lots of events
+  watcher_exclude=".git"
+fi
+
+${watcher} --exclude ".git" -mr --format '%w %f %:e' \
   -e create -e close_write -e delete ${files[@]} \
 | while read dir file event; do
   # avoid editor extra files
