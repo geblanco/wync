@@ -94,7 +94,6 @@ while (( "$#" )); do
       ;;
     -i|--include-dot)
       include_dot=1
-      static_excludes+=(".*")
       shift
       ;;
     --) # end argument parsing
@@ -167,6 +166,9 @@ function setup_filter(){
     # get the name and add to the list
     rsync_excludes="$rsync_excludes --exclude=$(basename $excl)"
   done
+  if [[ "$include_dot" -eq 0 ]]; then
+    rsync_excludes+=" --exclude=.*"
+  fi
 }
 
 function construct_file_excludes() {
