@@ -98,7 +98,7 @@ while (( "$#" )); do
       ;;
     --) # end argument parsing
       shift
-      args=$@
+      args="$@"
       break
       ;;
     -*|--*=) # unsupported flags
@@ -200,9 +200,9 @@ function sync(){
   fi
   if [[ "$dry_run" -eq 0 ]]; then
     if [[ "${log_file^^}" == "STDOUT" ]]; then
-      ${syncer} $rsync_opts $rsync_excludes $rsync_file_excludes $args $local_file $remote_file
+      ${syncer} $rsync_opts $rsync_excludes $rsync_file_excludes "${args}" $local_file $remote_file
     else
-      ${syncer} $rsync_opts $rsync_excludes $rsync_file_excludes $args $local_file $remote_file &>"$log_file"
+      ${syncer} $rsync_opts $rsync_excludes $rsync_file_excludes "${args}" $local_file $remote_file &>"$log_file"
     fi
    fi
   echo " done"
